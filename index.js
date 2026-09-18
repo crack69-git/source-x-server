@@ -26,6 +26,45 @@ async function connectToMongoDB() {
     await client.connect();
     const database = client.db(process.env.MONGODB_DB);
     const usersCollection = database.collection("user");
+    const postsCollection = database.collection("post");
+
+    // getPostsById
+    app.get("/api/getPosts/:id", async (req, res) => {
+      try {
+        const postId = req.params.id;
+        const objectId = new ObjectId(postId);
+        const post = await postsCollection.findOne({ _id: objectId });
+        if (!post) {
+          return res.status(404).json({ error: "Post not found" });
+        }
+        res.json(post);
+      } catch (error) {
+        console.error("Error fetching post:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // getPosts
+    app.get("/api/getPosts", async (req, res) => {
+      try {
+        const posts = await postsCollection.find({}).toArray();
+        res.json(posts);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // postRequirements
+    app.post("/api/requirements", async (req, res) => {
+      try {
+        const requirement = await postsCollection.insertOne(req.body);
+        res.status(201).json(requirement);
+      } catch (error) {
+        console.error("Error posting requirement:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
 
     // getUserById
     app.get("/api/users/:id", async (req, res) => {
