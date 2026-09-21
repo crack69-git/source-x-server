@@ -23,7 +23,7 @@ async function connectToMongoDB() {
   }
 
   try {
-    // await client.connect();
+    await client.connect();
     const database = client.db(process.env.MONGODB_DB);
     const usersCollection = database.collection("user");
     const postsCollection = database.collection("post");
@@ -169,11 +169,12 @@ async function connectToMongoDB() {
     });
 
     console.log("You successfully connected to MongoDB!");
-    // return client;
-  } 
-catch (error) {
-    console.error("Error connecting to MongoDB:", error);
+    return client;
+  } catch (err) {
+    console.dir(err);
+    return null;
   }
+}
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
