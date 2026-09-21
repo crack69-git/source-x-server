@@ -10,7 +10,7 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT;
-const client = new MongoClient(process.env.MONGODB_URI);
+const mongoClient = new MongoClient(process.env.MONGODB_URI);
 
 app.use(express.json());
 app.use(cors());
@@ -21,8 +21,8 @@ async function connectToMongoDB() {
     console.warn("MONGODB_URI is not set. Skipping MongoDB connection.");
     return null;
   }
-  const client = await client.connect();
-  const database = client.db(process.env.MONGODB_DB);
+  await mongoClient.connect();
+  const database = mongoClient.db(process.env.MONGODB_DB);
   const usersCollection = database.collection("user");
   const postsCollection = database.collection("post");
   const suppliersCollection = database.collection("supplier");
@@ -174,10 +174,8 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-connectToMongoDB();
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+connectToMongoDB().catch((error) => {
+  console.error("MongoDB connection failed:", error);
 });
 
 module.exports = app;
