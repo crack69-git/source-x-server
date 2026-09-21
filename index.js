@@ -169,12 +169,11 @@ async function connectToMongoDB() {
     });
 
     console.log("You successfully connected to MongoDB!");
-    return client;
-  } catch (err) {
-    console.dir(err);
-    return null;
+    // return client;
+  } 
+catch (error) {
+    console.error("Error connecting to MongoDB:", error);
   }
-}
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
