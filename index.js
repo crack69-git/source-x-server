@@ -9,7 +9,7 @@ const { MongoClient } = require("mongodb");
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT;
 const client = new MongoClient(process.env.MONGODB_URI);
 
 app.use(express.json());
@@ -23,7 +23,7 @@ async function connectToMongoDB() {
   }
 
   try {
-    await client.connect();
+    // await client.connect();
     const database = client.db(process.env.MONGODB_DB);
     const usersCollection = database.collection("user");
     const postsCollection = database.collection("post");
