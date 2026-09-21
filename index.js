@@ -1,5 +1,5 @@
 const dns = require("dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+dns.setServers(["8.8.8.8", "8.8.4.4", "0.0.0.0"]);
 
 const express = require("express");
 const dotenv = require("dotenv");
@@ -16,14 +16,14 @@ app.use(express.json());
 app.use(cors());
 const { ObjectId } = require("mongodb");
 
-async function connectToMongoDB() {
+async function run() {
   if (!process.env.MONGODB_URI) {
     console.warn("MONGODB_URI is not set. Skipping MongoDB connection.");
     return null;
   }
 
   try {
-    await client.connect();
+    // await client.connect();
     const database = client.db(process.env.MONGODB_DB);
     const usersCollection = database.collection("user");
     const postsCollection = database.collection("post");
@@ -169,18 +169,16 @@ async function connectToMongoDB() {
     });
 
     console.log("You successfully connected to MongoDB!");
-    return client;
+    // return client;
   } catch (err) {
     console.dir(err);
     return null;
   }
 }
-
+run();
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
-
-connectToMongoDB();
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
