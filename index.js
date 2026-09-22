@@ -1,20 +1,44 @@
-const dns = require("dns");
+import dns from "dns";
 dns.setServers(["8.8.8.8", "8.8.4.4", "0.0.0.0"]);
 
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
-const { MongoClient } = require("mongodb");
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import { MongoClient } from "mongodb";
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT;
+import * as jose from "jose-cjs";
+const JWKS = jose.createRemoteJWKSet(
+  new URL(`${process.env.BASE_URL_CLIENT}/api/auth/jwks`),
+);
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Authorization header missing" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Token missing" });
+  }
+  try {
+    const { payload } = await jose.jwtVerify(token, JWKS);
+
+    req.user = payload;
+    next();
+  } catch (err) {
+    console.error(err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
 const client = new MongoClient(process.env.MONGODB_URI);
 
 app.use(express.json());
 app.use(cors());
-const { ObjectId } = require("mongodb");
+import { ObjectId } from "mongodb";
 
 async function run() {
   if (!process.env.MONGODB_URI) {
@@ -30,7 +54,7 @@ async function run() {
     const suppliersCollection = database.collection("supplier");
 
     // getSupplierById
-    app.get("/api/supplier/single/:id", async (req, res) => {
+    app.get("/api/supplier/single/:id", verifyToken, async (req, res) => {
       try {
         const supplierId = req.params.id;
         console.log("Fetching supplier with ID:", supplierId);
@@ -50,7 +74,7 @@ async function run() {
     });
 
     // postSupplier
-    app.post("/api/supplier", async (req, res) => {
+    app.post("/api/supplier", verifyToken, async (req, res) => {
       try {
         const supplier = await suppliersCollection.insertOne(req.body);
         res.status(201).json(supplier);
@@ -61,34 +85,38 @@ async function run() {
     });
 
     // patchDeliveryStatus
-    app.patch("/api/updateDeliveryStatus/:id", async (req, res) => {
-      try {
-        const postId = req.params.id;
-        console.log("Updating delivery status for post ID:", postId);
-        const objectId = new ObjectId(postId);
-        const { delivaryStatus } = req.body;
-        console.log("New delivery status:", delivaryStatus);
-        const result = await postsCollection.updateOne(
-          { _id: objectId },
-          { $set: { delivaryStatus } },
-        );
-        console.log("Update result:", result);
-        if (result.matchedCount === 0) {
-          return res.status(404).json({ error: "Post not found" });
+    app.patch(
+      "/api/updateDeliveryStatus/:id",
+      verifyToken,
+      async (req, res) => {
+        try {
+          const postId = req.params.id;
+          console.log("Updating delivery status for post ID:", postId);
+          const objectId = new ObjectId(postId);
+          const { delivaryStatus } = req.body;
+          console.log("New delivery status:", delivaryStatus);
+          const result = await postsCollection.updateOne(
+            { _id: objectId },
+            { $set: { delivaryStatus } },
+          );
+          console.log("Update result:", result);
+          if (result.matchedCount === 0) {
+            return res.status(404).json({ error: "Post not found" });
+          }
+          res.json({
+            message: "Delivery status updated successfully",
+            matchedCount: result.matchedCount,
+            modifiedCount: result.modifiedCount,
+          });
+        } catch (error) {
+          console.error("Error updating delivery status:", error);
+          res.status(500).json({ error: "Internal Server Error" });
         }
-        res.json({
-          message: "Delivery status updated successfully",
-          matchedCount: result.matchedCount,
-          modifiedCount: result.modifiedCount,
-        });
-      } catch (error) {
-        console.error("Error updating delivery status:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-      }
-    });
+      },
+    );
 
-    // patchPostStatus
-    app.patch("/api/updatePostStatus/:id", async (req, res) => {
+    // s
+    app.patch("/api/updatePostStatus/:id", verifyToken, async (req, res) => {
       try {
         const postId = req.params.id;
         const objectId = new ObjectId(postId);
@@ -112,7 +140,7 @@ async function run() {
     });
 
     // getPostsById
-    app.get("/api/getPosts/:id", async (req, res) => {
+    app.get("/api/getPosts/:id", verifyToken, async (req, res) => {
       try {
         const postId = req.params.id;
         const objectId = new ObjectId(postId);
@@ -128,7 +156,7 @@ async function run() {
     });
 
     // getPosts
-    app.get("/api/getPosts", async (req, res) => {
+    app.get("/api/getPosts", verifyToken, async (req, res) => {
       try {
         const posts = await postsCollection
           .find({})
@@ -142,7 +170,7 @@ async function run() {
     });
 
     // postRequirements
-    app.post("/api/requirements", async (req, res) => {
+    app.post("/api/requirements", verifyToken, async (req, res) => {
       try {
         const requirement = await postsCollection.insertOne(req.body);
         res.status(201).json(requirement);
