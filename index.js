@@ -1,5 +1,5 @@
 import dns from "dns";
-dns.setServers(["8.8.8.8", "8.8.4.4", "0.0.0.0"]);
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 import express from "express";
 import dotenv from "dotenv";
