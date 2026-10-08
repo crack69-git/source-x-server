@@ -5,7 +5,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { MongoClient } from "mongodb";
-
+import { randomInt } from "crypto";
 dotenv.config();
 
 const app = express();
@@ -52,6 +52,65 @@ async function run() {
     const usersCollection = database.collection("user");
     const postsCollection = database.collection("post");
     const suppliersCollection = database.collection("supplier");
+    const productsCollection = database.collection("product");
+
+    // getProducts
+    app.get("/api/get/products", async (req, res) => {
+      try {
+        const products = await productsCollection.find({}).toArray();
+        res.json(products);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // postProduct
+
+    app.post("/api/post/product", async (req, res) => {
+      try {
+        const productData = req.body;
+        console.log("Received product data:", productData);
+        let product;
+        let productCode;
+        while (true) {
+          const randomNumber = randomInt(100000, 1000000);
+          productCode = `SX-${randomNumber}`;
+          try {
+            const data = {
+              ...productData,
+              productCode: productCode,
+            };
+            product = await productsCollection.insertOne(data);
+            console.log("Inserted product:", product);
+            break;
+          } catch (error) {
+            if (error.code === 11000) {
+              console.log(
+                `Product code ${productCode} already exists. Generating another...`,
+              );
+
+              continue;
+            }
+            throw error;
+          }
+        }
+
+        res.status(201).json({
+          success: true,
+          message: "Product posted successfully",
+          productCode: productCode,
+          product: product,
+        });
+      } catch (error) {
+        console.error("Error posting product:", error);
+
+        res.status(500).json({
+          success: false,
+          error: "Internal Server Error",
+        });
+      }
+    });
 
     // getSupplierById
     app.get("/api/supplier/single/:id", verifyToken, async (req, res) => {
