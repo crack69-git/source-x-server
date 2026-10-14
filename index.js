@@ -54,14 +54,60 @@ async function run() {
     const suppliersCollection = database.collection("supplier");
     const productsCollection = database.collection("product");
 
+    // getSingleProduct
+    app.get("/api/get/product/:id", async (req, res) => {
+      try {
+        const productId = req.params.id;
+        const product = await productsCollection.findOne({
+          productCode: productId,
+        });
+        if (!product) {
+          return res.status(404).json({ error: "Product not found" });
+        }
+        res.json(product);
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // getProducts
+
     app.get("/api/get/products", async (req, res) => {
       try {
-        const products = await productsCollection.find({}).toArray();
-        res.json(products);
+        const { name, category } = req.query;
+        const query = {};
+
+        // Search by product name (partial, case-insensitive)
+        if (typeof name === "string" && name.trim()) {
+          const escapedName = name
+            .trim()
+            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+          query.productName = {
+            $regex: escapedName,
+            $options: "i",
+          };
+        }
+
+        // Filter by category
+        if (
+          typeof category === "string" &&
+          category.trim() &&
+          category !== "all"
+        ) {
+          query.productCategory = category.trim();
+        }
+
+        const products = await productsCollection.find(query).toArray();
+
+        return res.status(200).json(products);
       } catch (error) {
         console.error("Error fetching products:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+
+        return res.status(500).json({
+          error: "Internal Server Error",
+        });
       }
     });
 
