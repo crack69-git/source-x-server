@@ -6,8 +6,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { MongoClient } from "mongodb";
 import { randomInt } from "crypto";
-dotenv.config();
 
+dotenv.config();
 const app = express();
 const port = process.env.PORT;
 import * as jose from "jose-cjs";
@@ -53,6 +53,77 @@ async function run() {
     const postsCollection = database.collection("post");
     const suppliersCollection = database.collection("supplier");
     const productsCollection = database.collection("product");
+    const cartsCollection = database.collection("cart");
+    const ordersCollection = database.collection("order");
+
+    // postCart
+    app.post("/api/cart", async (req, res) => {
+      try {
+        const cart = await cartsCollection.insertOne(req.body);
+        res.status(201).json(cart);
+      } catch (error) {
+        console.error("Error posting cart:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // getProduct
+    app.get("/api/all/getProducts", async (req, res) => {
+      try {
+        const posts = await productsCollection.find({}).toArray();
+        res.json(posts);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // deletePost
+    app.delete("/api/delete/post/:id", async (req, res) => {
+      try {
+        const postId = req.params.id;
+        const objectId = new ObjectId(postId);
+        console.log("Deleting post with ID:", postId, "ObjectId:", objectId);
+        const result = await postsCollection.deleteOne({ _id: objectId });
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ error: "Post not found" });
+        }
+        res.json({
+          message: "Post deleted successfully",
+          deletedCount: result.deletedCount,
+        });
+      } catch (error) {
+        console.error("Error deleting post:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // deleteProuct
+    app.delete("/api/delete/product/:id", async (req, res) => {
+      try {
+        const productId = req.params.id;
+        const objectId = new ObjectId(productId);
+        console.log(
+          "Deleting product with ID:",
+          productId,
+          "ObjectId:",
+          objectId,
+        );
+        const result = await productsCollection.deleteOne({
+          _id: objectId,
+        });
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ error: "Product not found" });
+        }
+        res.json({
+          message: "Product deleted successfully",
+          deletedCount: result.deletedCount,
+        });
+      } catch (error) {
+        console.error("Error deleting product:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
 
     // getSingleProduct
     app.get("/api/get/product/:id", async (req, res) => {
