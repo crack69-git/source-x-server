@@ -56,6 +56,28 @@ async function run() {
     const cartsCollection = database.collection("cart");
     const ordersCollection = database.collection("order");
 
+    // getOrders
+    app.get("/api/orders", async (req, res) => {
+      try {
+        const orders = await ordersCollection.find({}).toArray();
+        res.json(orders);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // postOrder
+    app.post("/api/order", async (req, res) => {
+      try {
+        const order = await ordersCollection.insertOne(req.body);
+        res.status(201).json(order);
+      } catch (error) {
+        console.error("Error posting order:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // postCart
     app.post("/api/cart", async (req, res) => {
       try {
