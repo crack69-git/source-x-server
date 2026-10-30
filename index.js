@@ -39,6 +39,7 @@ const client = new MongoClient(process.env.MONGODB_URI);
 app.use(express.json());
 app.use(cors());
 import { ObjectId } from "mongodb";
+import { totalmem } from "os";
 
 async function run() {
   if (!process.env.MONGODB_URI) {
@@ -56,6 +57,84 @@ async function run() {
     const cartsCollection = database.collection("cart");
     const ordersCollection = database.collection("order");
 
+    // updateProductQuantity
+    app.patch("/api/update/product/:id", async (req, res) => {
+      try {
+        const productId = req.params.id;
+        const { availableQuantity } = req.body;
+        const result = await productsCollection.updateOne(
+          { _id: productId },
+          { $set: { availableQuantity } },
+        );
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ error: "Product not found" });
+        }
+        res.json({
+          message: "Product quantity updated successfully",
+          updatedCount: result.modifiedCount,
+        });
+      } catch (error) {
+        console.error("Error updating product quantity:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // patchOrder
+    app.patch("/api/update/order/:id", async (req, res) => {
+      try {
+        const orderId = req.params.id;
+        const { state } = req.body;
+        const result = await ordersCollection.updateOne(
+          { _id: orderId },
+          { $set: { state } },
+        );
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+        res.json({
+          message: "Order updated successfully",
+          updatedCount: result.modifiedCount,
+        });
+      } catch (error) {
+        console.error("Error updating order:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // getSingleOrder
+    app.get("/api/single/order/:id", async (req, res) => {
+      try {
+        const orderId = req.params.id;
+        const order = await ordersCollection.findOne({ _id: orderId });
+        if (!order) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+        res.json(order);
+      } catch (error) {
+        console.error("Error fetching order:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // deleteOrder
+    app.delete("/api/delete/order/:id", async (req, res) => {
+      try {
+        const orderId = req.params.id;
+
+        const result = await ordersCollection.deleteOne({ _id: orderId });
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+        res.json({
+          message: "Order deleted successfully",
+          deletedCount: result.deletedCount,
+        });
+      } catch (error) {
+        console.error("Error deleting order:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     // getOrders
     app.get("/api/orders", async (req, res) => {
       try {
@@ -68,9 +147,12 @@ async function run() {
     });
 
     // postOrder
-    app.post("/api/order", async (req, res) => {
+    app.post("/api/order/post", async (req, res) => {
       try {
-        const order = await ordersCollection.insertOne(req.body);
+        const orderData = req.body;
+        console.log("Received order data:", orderData);
+        const order = await ordersCollection.insertOne(orderData);
+
         res.status(201).json(order);
       } catch (error) {
         console.error("Error posting order:", error);
